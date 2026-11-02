@@ -237,13 +237,22 @@ The default `ContainerOptimizedOS` and `Ubuntu` images boot as Confidential VMs 
 
 ## Minimum CPU platform
 
-Some machine families are offered on more than one CPU generation, for example N2 on Cascade Lake or Ice Lake, and E2 on whatever hardware is available. Workloads that depend on an exact CPU feature set, such as restoring VM snapshots taken on another node, need every node in the pool to land on the same platform.
+Some machine families are offered on more than one CPU generation, for example N2 on Cascade Lake or Ice Lake. Workloads that depend on an exact CPU feature set, such as restoring VM snapshots taken on another node, need every node in the pool to land on the same platform.
 
 ```yaml
 minCpuPlatform: "Intel Ice Lake"
 ```
 
-GCE schedules the instance on the named platform or a newer one from the same vendor. The value is a GCE CPU platform name as listed in the [GCP CPU platforms documentation](https://cloud.google.com/compute/docs/instances/specify-min-cpu-platform). If the chosen machine type does not offer the platform, GCE rejects the instance creation and the error surfaces on the `NodeClaim` `Launched` condition. Leave the field unset to accept the family default.
+GCE schedules the instance on the named platform or a newer one from the same vendor. The value is a GCE CPU platform name as listed in the [GCP CPU platforms documentation](https://cloud.google.com/compute/docs/instances/specify-min-cpu-platform). Leave the field unset to accept the family default. Changing the value marks existing nodes as drifted, and Karpenter replaces them according to your disruption budgets.
+
+If the chosen machine type does not offer the platform, GCE rejects the instance creation and the error surfaces on the `NodeClaim` `Launched` condition. E2 and shared-core machine types do not accept a minimum CPU platform at all. Constrain the matching `NodePool` to families that run on the platform:
+
+```yaml
+requirements:
+  - key: karpenter.k8s.gcp/instance-family
+    operator: In
+    values: [n2]
+```
 
 ## Nested virtualization
 
